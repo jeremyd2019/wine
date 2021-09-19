@@ -93,6 +93,7 @@ extern char **environ;
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(module);
+WINE_DECLARE_DEBUG_CHANNEL(unixpid);
 
 #ifdef __i386__
 static const char so_dir[] = "/i386-unix";
@@ -1820,6 +1821,9 @@ static void start_main_thread(void)
     load_ntdll();
     load_wow64_ntdll( main_image_info.Machine );
     load_apiset_dll();
+
+    TRACE_(unixpid)("unixpid=%d [%s] [%s] NtCurrentTeb()=%p :%d\n", getpid(), debugstr_w(main_wargv[0]), debugstr_w(NtCurrentTeb()->Peb->ProcessParameters->CommandLine.Buffer), NtCurrentTeb(), __LINE__);
+
     server_init_process_done();
 }
 

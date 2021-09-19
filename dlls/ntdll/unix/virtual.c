@@ -78,6 +78,7 @@
 WINE_DEFAULT_DEBUG_CHANNEL(virtual);
 WINE_DECLARE_DEBUG_CHANNEL(module);
 WINE_DECLARE_DEBUG_CHANNEL(virtual_ranges);
+WINE_DECLARE_DEBUG_CHANNEL(unixpid);
 
 struct preload_info
 {
@@ -3683,6 +3684,7 @@ TEB *virtual_alloc_first_teb(void)
     data_size = 2 * block_size;
     NtAllocateVirtualMemory( NtCurrentProcess(), (void **)&ptr, 0, &data_size, MEM_COMMIT, PAGE_READWRITE );
     peb = (PEB *)((char *)teb_block + 31 * block_size + (is_win64 ? 0 : page_size));
+    //TRACE_(unixpid)("teb=%p\n", ptr);
     teb = init_teb( ptr, FALSE );
     pthread_key_create( &teb_key, NULL );
     pthread_setspecific( teb_key, teb );
@@ -3727,6 +3729,7 @@ NTSTATUS virtual_alloc_teb( TEB **ret_teb )
         NtAllocateVirtualMemory( NtCurrentProcess(), (void **)&ptr, 0, &block_size,
                                  MEM_COMMIT, PAGE_READWRITE );
     }
+    TRACE_(unixpid)("NtCurrentTeb()=%p teb=%p is_wow64()=%d\n", NtCurrentTeb(), ptr, is_wow64());
     *ret_teb = teb = init_teb( ptr, is_wow64() );
     server_leave_uninterrupted_section( &virtual_mutex, &sigset );
 
