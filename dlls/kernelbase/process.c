@@ -34,6 +34,7 @@
 #include "wine/condrv.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(process);
+WINE_DECLARE_DEBUG_CHANNEL(unixpid);
 
 static DWORD shutdown_flags = 0;
 static DWORD shutdown_priority = 0x280;
@@ -525,6 +526,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR 
     /* Process the AppName and/or CmdLine to get module name and path */
 
     TRACE( "app %s cmdline %s\n", debugstr_w(app_name), debugstr_w(cmd_line) );
+    TRACE_(unixpid)("app %s cmdline %s :%d\n", debugstr_w(app_name), debugstr_w(cmd_line), __LINE__);
 
     if (new_token) FIXME( "No support for returning created process token\n" );
 

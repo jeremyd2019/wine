@@ -82,6 +82,7 @@
 #include "ddk/wdm.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(server);
+WINE_DECLARE_DEBUG_CHANNEL(unixpid);
 
 #ifndef MSG_CMSG_CLOEXEC
 #define MSG_CMSG_CLOEXEC 0
@@ -1668,6 +1669,8 @@ size_t server_init_process(void)
 
     set_thread_id( NtCurrentTeb(), pid, tid );
 
+    TRACE_(unixpid)("unixpid=%d unixtid=%d :%d\n", getpid(), get_unix_tid(), __LINE__);
+
     for (i = 0; i < supported_machines_count; i++)
         if (supported_machines[i] == current_machine) return info_size;
 
@@ -1744,6 +1747,8 @@ void server_init_thread( void *entry_point, BOOL *suspend )
     }
     SERVER_END_REQ;
     close( reply_pipe );
+
+    TRACE_(unixpid)("unixpid=%d unixtid=%d :%d\n", getpid(), get_unix_tid(), __LINE__);
 }
 
 
