@@ -335,6 +335,11 @@ static inline SIZE_T get_env_length( const WCHAR *env )
  */
 static BOOL is_special_env_var( const char *var )
 {
+    if (STARTS_WITH( var, "QT_NO_CPU_FEATURE"))
+      return FALSE;
+      // rr: avoid some instruction, otherwise expect a replay divergence like this:
+      //  -> Assertion `ticks_now == trace_ticks' failed to hold. ticks mismatch for 'SYSCALL: read'; expected 29070847, got 29070851
+
     return (STARTS_WITH( var, "PATH=" ) ||
             STARTS_WITH( var, "PWD=" ) ||
             STARTS_WITH( var, "HOME=" ) ||
