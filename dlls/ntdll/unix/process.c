@@ -72,6 +72,7 @@
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(process);
+WINE_DECLARE_DEBUG_CHANNEL(unixpid);
 
 
 static ULONG execute_flags = MEM_EXECUTE_OPTION_DISABLE;
@@ -1008,6 +1009,13 @@ NTSTATUS WINAPI NtTerminateProcess( HANDLE handle, LONG exit_code )
     SERVER_END_REQ;
     if (self)
     {
+        TRACE_(unixpid)("unixpid=%d %s self=%d NtCurrentTeb()=%p NtCurrentTeb()->Peb=%p :%d\n", getpid(), (NtCurrentTeb()->Peb->ProcessParameters ? debugstr_w(NtCurrentTeb()->Peb->ProcessParameters->CommandLine.Buffer) : NULL), self, NtCurrentTeb(), NtCurrentTeb()->Peb, __LINE__);
+        if (TRACE_ON(unixpid)) {
+            // change timing at process exit to avoid rr: Assertion `0 <= wait_ret' failed to hold. waitpid(2124276, NOHANG) failed with -1
+            LARGE_INTEGER time;
+            time.QuadPart = (ULONGLONG)1000 * -10000;
+            NtDelayExecution( FALSE, &time );
+        }
         if (!handle) process_exiting = TRUE;
         else if (process_exiting) exit_process( exit_code );
         else abort_process( exit_code );
