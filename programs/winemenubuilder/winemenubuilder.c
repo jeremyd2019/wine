@@ -2891,6 +2891,13 @@ int PASCAL wWinMain (HINSTANCE hInstance, HINSTANCE prev, LPWSTR cmdline, int sh
     BOOL bURL = FALSE;
     HRESULT hr;
     int ret = 0;
+    char buf[10];
+
+    if (GetEnvironmentVariableA("RUNNING_UNDER_RR", buf, sizeof(buf)) > 0)
+    {
+        ERR("Leaving winemenubuilder early.\n");
+        return 1;
+    }
 
     if (!init_xdg())
         return 1;
