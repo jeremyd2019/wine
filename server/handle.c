@@ -478,6 +478,13 @@ struct object *get_handle_obj( struct process *process, obj_handle_t handle,
             set_error( STATUS_OBJECT_TYPE_MISMATCH );  /* not the right type */
             return NULL;
         }
+        if ((access & PROCESS_QUERY_INFORMATION) &&
+            !(entry->access & PROCESS_QUERY_INFORMATION) &&
+            (entry->access & PROCESS_QUERY_LIMITED_INFORMATION))
+        {
+            access &= ~PROCESS_QUERY_INFORMATION;
+            access |= PROCESS_QUERY_LIMITED_INFORMATION;
+        }
         if ((entry->access & access) != access)
         {
             set_error( STATUS_ACCESS_DENIED );
