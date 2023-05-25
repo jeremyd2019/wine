@@ -1787,8 +1787,10 @@ HRESULT WINAPI DrawThemeTextEx(HTHEME hTheme, HDC hdc, int iPartId, int iStateId
     if(!hTheme)
         return E_HANDLE;
 
-    if (options->dwFlags & ~(DTT_TEXTCOLOR | DTT_FONTPROP))
-        FIXME("unsupported flags 0x%08lx\n", options->dwFlags);
+    if (options->dwFlags & ~(DTT_TEXTCOLOR | DTT_FONTPROP)) {
+        static int once;
+        if (!once++) FIXME("unsupported flags 0x%08lx\n", options->dwFlags);
+    }
 
     if (options->dwFlags & DTT_FONTPROP)
         fontProp = options->iFontPropId;
