@@ -555,7 +555,8 @@ BOOL WINAPI NtUserDrawIconEx( HDC hdc, INT x0, INT y0, HICON icon, INT width,
 
     if (!(obj = get_icon_frame_ptr( icon, step )))
     {
-        FIXME_(icon)("Error retrieving icon frame %d\n", step);
+        static int once;
+        if (!once++) FIXME_(icon)("Error retrieving icon frame %d\n", step);
         return FALSE;
     }
     if (!(mem_dc = NtGdiCreateCompatibleDC( hdc )))
