@@ -1616,6 +1616,14 @@ NTSTATUS WINAPI NtQueryInformationProcess( HANDLE handle, PROCESSINFOCLASS class
             break;
         }
 
+    case ProcessHandleInformation:
+        {
+            static int once;
+            if (!once++) FIXME("(%p,info_class=%d,%p,0x%08x,%p) Unknown information class ProcessHandleInformation\n", handle, class, info, (int)size, ret_len );
+            ret = STATUS_INVALID_INFO_CLASS;
+        }
+        break;
+
     default:
         FIXME("(%p,info_class=%d,%p,0x%08x,%p) Unknown information class\n",
               handle, class, info, (int)size, ret_len );
