@@ -396,24 +396,24 @@ static BOOL socket_list_add(SOCKET socket)
 }
 
 
-static BOOL socket_list_find( SOCKET socket )
-{
-    unsigned int i;
-
-    if (!socket) return FALSE;
-
-    EnterCriticalSection( &cs_socket_list );
-    for (i = 0; i < socket_list_size; ++i)
-    {
-        if (socket_list[i] == socket)
-        {
-            LeaveCriticalSection( &cs_socket_list );
-            return TRUE;
-        }
-    }
-    LeaveCriticalSection( &cs_socket_list );
-    return FALSE;
-}
+//static BOOL socket_list_find( SOCKET socket )
+//{
+//    unsigned int i;
+//
+//    if (!socket) return FALSE;
+//
+//    EnterCriticalSection( &cs_socket_list );
+//    for (i = 0; i < socket_list_size; ++i)
+//    {
+//        if (socket_list[i] == socket)
+//        {
+//            LeaveCriticalSection( &cs_socket_list );
+//            return TRUE;
+//        }
+//    }
+//    LeaveCriticalSection( &cs_socket_list );
+//    return FALSE;
+//}
 
 
 static BOOL socket_list_remove( SOCKET socket )
@@ -1000,11 +1000,11 @@ static int WS2_sendto( SOCKET s, WSABUF *buffers, DWORD buffer_count, DWORD *ret
            "addr_len %d, overlapped %p, completion %p\n",
            s, buffers, buffer_count, flags, addr, addr_len, overlapped, completion );
 
-    if (!socket_list_find( s ))
-    {
-        SetLastError( WSAENOTSOCK );
-        return -1;
-    }
+//    if (!socket_list_find( s ))
+//    {
+//        SetLastError( WSAENOTSOCK );
+//        return -1;
+//    }
 
     if (!overlapped && !ret_size)
     {
@@ -1518,11 +1518,11 @@ int WINAPI getpeername( SOCKET s, struct sockaddr *addr, int *len )
 
     TRACE( "socket %#Ix, addr %p, len %d\n", s, addr, len ? *len : 0 );
 
-    if (!socket_list_find( s ))
-    {
-        WSASetLastError( WSAENOTSOCK );
-        return -1;
-    }
+//    if (!socket_list_find( s ))
+//    {
+//        WSASetLastError( WSAENOTSOCK );
+//        return -1;
+//    }
 
     /* Windows checks the validity of the socket before checking len, so
      * let wineserver do the same. Since len being NULL and *len being 0
@@ -1590,11 +1590,11 @@ int WINAPI getsockopt( SOCKET s, int level, int optname, char *optval, int *optl
 
     if ((level != SOL_SOCKET || optname != SO_OPENTYPE))
     {
-        if (!socket_list_find( s ))
-        {
-            SetLastError( WSAENOTSOCK );
-            return SOCKET_ERROR;
-        }
+//        if (!socket_list_find( s ))
+//        {
+//            SetLastError( WSAENOTSOCK );
+//            return SOCKET_ERROR;
+//        }
         if (!optlen || *optlen <= 0)
         {
             SetLastError( WSAEFAULT );
@@ -2993,7 +2993,7 @@ int WINAPI WSAPoll( WSAPOLLFD *fds, ULONG count, int timeout )
     {
         unsigned int flags = AFD_POLL_HUP | AFD_POLL_RESET | AFD_POLL_CONNECT_ERR;
 
-        if ((INT_PTR)fds[i].fd < 0 || !socket_list_find( fds[i].fd ))
+        if ((INT_PTR)fds[i].fd < 0 /*|| !socket_list_find( fds[i].fd )*/)
         {
             fds[i].revents = POLLNVAL;
             continue;
@@ -3768,11 +3768,11 @@ BOOL WINAPI WSAGetOverlappedResult( SOCKET s, LPWSAOVERLAPPED lpOverlapped,
         return FALSE;
     }
 
-    if (!socket_list_find( s ))
-    {
-        SetLastError( WSAENOTSOCK );
-        return FALSE;
-    }
+//    if (!socket_list_find( s ))
+//    {
+//        SetLastError( WSAENOTSOCK );
+//        return FALSE;
+//    }
 
     /* Paired with the write-release in set_async_iosb() in ntdll; see the
      * latter for details. */
