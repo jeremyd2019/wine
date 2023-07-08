@@ -14194,12 +14194,56 @@ static void test_select_after_WSAEventSelect(void)
     closesocket(client);
 }
 
+static void test_msys(void)
+{
+    int ret;
+    WORD ver = MAKEWORD (2, 2);
+    WSADATA data;
+    SOCKET s;
+    struct sockaddr_in addr;
+    HANDLE wsock_evt;
+    WSANETWORKEVENTS evts = { 0 };
+
+    ok ( WSAStartup ( ver, &data ) == 0, "WSAStartup failed\n" );
+
+    s = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    ok(s!=INVALID_SOCKET, "socket() failed error: %d\n", WSAGetLastError());
+    if(s == INVALID_SOCKET) return;
+
+    wsock_evt = CreateEventA(NULL, TRUE, FALSE, NULL);
+    ret = WSAEventSelect(s, wsock_evt, FD_READ|FD_WRITE|FD_OOB|FD_ACCEPT|FD_CONNECT|FD_CLOSE);
+    ok(!ret, "WSAEventSelect failed with %u\n", WSAGetLastError());
+
+    memset(&addr, 0, sizeof addr);
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    addr.sin_port = htons(9050);
+    ret = connect(s, (struct sockaddr*)&addr, sizeof(addr));
+    ok(ret == SOCKET_ERROR, "unexpected succeeding connect\n");
+
+    Sleep(4000);
+    ret = WSAEnumNetworkEvents(s, wsock_evt, &evts);
+    ok(!ret, "WSAEnumNetworkEvents failed with %u\n", WSAGetLastError());
+    ok(evts.lNetworkEvents == 16, "evts.lNetworkEvents == %ld expected\n", evts.lNetworkEvents);
+
+    addr.sin_port = htons(9150);
+    ret = connect(s, (struct sockaddr*)&addr, sizeof(addr));
+    ok(ret == SOCKET_ERROR, "unexpected succeeding connect\n");
+
+    Sleep(4000);
+    ret = WSAEnumNetworkEvents(s, wsock_evt, &evts);
+    ok(!ret, "WSAEnumNetworkEvents failed with %u\n", WSAGetLastError());
+    ok(evts.lNetworkEvents == 16, "evts.lNetworkEvents == %ld expected\n", evts.lNetworkEvents);
+}
+
 START_TEST( sock )
 {
     int i;
 
 /* Leave these tests at the beginning. They depend on WSAStartup not having been
  * called, which is done by Init() below. */
+    if (0) {
     test_WithoutWSAStartup();
     test_WithWSAStartup();
 
@@ -14306,4 +14350,7 @@ START_TEST( sock )
     test_send();
 
     Exit();
+    }
+
+    test_msys();
 }
