@@ -2641,6 +2641,10 @@ static void sock_ioctl( struct fd *fd, ioctl_code_t code, struct async *async )
 
             case SOCK_UNCONNECTED:
             case SOCK_CONNECTIONLESS:
+                if (sock->reported_events) {
+                    fprintf(stderr, "sock->fd=%p: resetting sock->reported_events from 0x%x to 0.\n", sock->fd, sock->reported_events);
+                    sock->reported_events = 0;
+                }
                 break;
         }
 
