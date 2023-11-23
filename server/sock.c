@@ -3772,8 +3772,8 @@ static void sock_release_ifchange( struct sock *sock )
 static void socket_device_dump( struct object *obj, int verbose );
 static struct object *socket_device_lookup_name( struct object *obj, struct unicode_str *name,
                                                  unsigned int attr, struct object *root );
-static struct object *socket_device_open_file( struct object *obj, unsigned int access,
-                                               unsigned int sharing, unsigned int options );
+static struct object *socket_device_open_file( struct object *obj, const struct unicode_str *subpath,
+                                               unsigned int access, unsigned int sharing, unsigned int options );
 
 static const struct object_ops socket_device_ops =
 {
@@ -3812,10 +3812,16 @@ static struct object *socket_device_lookup_name( struct object *obj, struct unic
     return NULL;
 }
 
-static struct object *socket_device_open_file( struct object *obj, unsigned int access,
-                                               unsigned int sharing, unsigned int options )
+static struct object *socket_device_open_file( struct object *obj, const struct unicode_str *subpath,
+                                               unsigned int access, unsigned int sharing, unsigned int options )
 {
     struct sock *sock;
+
+    if (subpath->len)
+    {
+        set_error( STATUS_OBJECT_NAME_NOT_FOUND );
+        return NULL;
+    }
 
     if (!(sock = create_socket())) return NULL;
     if (!(sock->fd = alloc_pseudo_fd( &sock_fd_ops, &sock->obj, options )))
