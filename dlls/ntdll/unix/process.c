@@ -795,7 +795,9 @@ NTSTATUS WINAPI NtCreateUserProcess( HANDLE *process_handle_ptr, HANDLE *thread_
 
     if ((status = get_pe_file_info( &attr, &file_handle, &pe_info )))
     {
-        if (status == STATUS_INVALID_IMAGE_NOT_MZ && !fork_and_exec( &attr, unixdir, params ))
+        if ((status == STATUS_INVALID_IMAGE_NOT_MZ ||
+             status == STATUS_INVALID_IMAGE_FORMAT ||
+             status == STATUS_INVALID_IMAGE_WIN_64) && !fork_and_exec( &attr, unixdir, params ))
         {
             memset( info, 0, sizeof(*info) );
             free( redir.Buffer );
