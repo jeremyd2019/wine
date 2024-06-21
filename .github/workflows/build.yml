@@ -1,0 +1,138 @@
+name: build
+on:
+  workflow_dispatch:
+    inputs:
+      release_name:
+        description: 'Release/tag to upload to'
+        required: false
+        default: ''
+
+jobs:
+  debian-12-x64:
+    name: Debian Bookworm x64
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
+          apt-get update
+          DEBIAN_FRONTEND="noninteractive" apt-get build-dep --install-recommends -y wine
+          DEBIAN_FRONTEND="noninteractive" apt-get install -y zstd xz-utils curl
+      - name: configure
+        run: |
+          mkdir build64 && cd build64
+          ../configure --disable-tests --enable-win64
+      - name: make
+        run: |
+          cd build64
+          make -j $(nproc)
+      - name: make install
+        run: |
+          cd build64
+          make DESTDIR="${GITHUB_WORKSPACE}/wineinst" install -j $(nproc)
+      - name: compress
+        run: |
+          tar -C "${GITHUB_WORKSPACE}/wineinst" -Jcvf wine-debian-12-bookworm-x64.tar.xz .
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-12-bookworm-x64
+          path: wine-debian-12-bookworm-x64.tar.xz
+
+  debian-12-cross:
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { arch: arm64, extrapkgs: 'libstdc++6-arm64-cross libstdc++-12-dev-arm64-cross libc-dev-arm64-cross clang lld binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu'},
+          { arch: i386, extrapkgs: 'gcc-multilib binutils-i686-linux-gnu lib32stdc++-12-dev gcc-mingw-w64-i686'},
+        ]
+    name: Debian Bookworm cross ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - name: install deps
+        shell: bash
+        run: |
+          sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
+          sed -i '/^Signed-By:/i Architectures: amd64 ${{ matrix.arch }}' /etc/apt/sources.list.d/debian.sources
+          apt-get update
+          dpkg --add-architecture ${{ matrix.arch }}
+          DEBIAN_FRONTEND="noninteractive" apt-get build-dep --install-recommends -y wine
+          archpkgs=""
+          for pkg in libgl-dev libxi-dev libxt-dev libxmu-dev \
+                     libx11-dev libxext-dev libxfixes-dev \
+                     libxrandr-dev libxcursor-dev libxrender-dev \
+                     libxkbfile-dev libxxf86vm-dev libxxf86dga-dev \
+                     libxinerama-dev libglu1-mesa-dev libxcomposite-dev \
+                     libssl-dev libv4l-dev libsdl2-dev libkrb5-dev \
+                     libudev-dev libpulse-dev libldap2-dev unixodbc-dev \
+                     libcups2-dev libcapi20-dev libvulkan-dev libopenal-dev \
+                     libdbus-1-dev freeglut3-dev libunwind-dev libpcap0.8-dev \
+                     libasound2-dev libgphoto2-dev libosmesa6-dev \
+                     libncurses-dev libfreetype-dev libgnutls28-dev \
+                     libusb-1.0-0-dev libgettextpo-dev libfontconfig-dev \
+                     ocl-icd-opencl-dev libgstreamer-plugins-base1.0-dev; do
+            archpkgs+="${pkg}:${{ matrix.arch }} "
+          done
+          DEBIAN_FRONTEND="noninteractive" apt-get install --install-recommends -y ${archpkgs}  ${{ matrix.extrapkgs }}
+          DEBIAN_FRONTEND="noninteractive" apt-get install --install-recommends -y zstd xz-utils curl git
+      - uses: actions/checkout@v4
+      - name: host tools
+        run: |
+          mkdir build64 && cd build64
+          ../configure --enable-win64
+          make __tooldeps__ -j $(nproc)
+          make -C nls
+      - name: configure
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          mkdir buildcross && cd buildcross
+          ../configure --disable-tests --enable-win64 \
+            --host=aarch64-linux-gnu \
+            host_alias=aarch64-linux-gnu \
+            build_alias=x86_64-linux-gnu \
+            --with-wine-tools=../build64 \
+            CC=aarch64-linux-gnu-gcc
+      - name: configure
+        if: ${{ matrix.arch == 'i386' }}
+        run: |
+          mkdir buildcross && cd buildcross
+          ../configure --disable-tests \
+            --with-wine-tools=../build64 \
+            CC="gcc -m32" CXX="g++ -m32"
+      - name: make
+        run: |
+          cd buildcross
+          make -j $(nproc)
+      - name: make install
+        run: |
+          cd buildcross
+          make DESTDIR="${GITHUB_WORKSPACE}/wineinst" install -j $(nproc)
+      - name: compress
+        run: |
+          tar -C "${GITHUB_WORKSPACE}/wineinst" -Jcvf wine-debian-12-bookworm-${{ matrix.arch }}.tar.xz .
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-12-bookworm-${{ matrix.arch }}
+          path: wine-debian-12-bookworm-${{ matrix.arch }}.tar.xz
+
+  release:
+    permissions:
+      contents: write
+    needs: [debian-12-x64, debian-12-cross]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.release_name != '' }}
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ inputs.release_name }}" --title "${{ inputs.release_name }}" --notes "" -R ${{ github.repository }} debian-12-bookworm-*/wine-debian-12-bookworm-*.tar.xz
